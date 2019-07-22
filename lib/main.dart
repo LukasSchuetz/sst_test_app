@@ -1,111 +1,151 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter_sound/flutter_sound.dart';
+import './SpeechToText.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'package:flutter_sound/android_encoder.dart';
 void main() => runApp(MyApp());
 
-class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
+class MyApp extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-      ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+  State<StatefulWidget> createState() {
+    // TODO: implement createState
+    return MyAppState();
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+class MyAppState extends State<MyApp> {
+  FlutterSound flutterSound = new FlutterSound();
+  var _recorderSubscription;
+  var _playerSubscription;
+  bool iconRecording = false;
+  String path;
+  SpeechToText stt = SpeechToText();
+  String transcript = 'Please upload a audio file to STT service';
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
+  void speechToText(String path) async {
+    String encodedAudio = encodeAudioFile(path);
+    transcript = await stt.recognizeText(encodedAudio);
+    if (transcript == null) transcript = 'Nothing Recognized';
+    print(transcript);
+  }
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+  String encodeAudioFile(String filePath) {
+    print("Read file");
+    File audioFile = new File(filePath);
+    List<int> audioBytes = audioFile.readAsBytesSync();
+    String audioBase64 = base64Encode(audioBytes);
+    print("Audio file encoded");
+    return audioBase64;
+  }
 
-  final String title;
+  void speechToTextScreen(String path) async {
+    print("Read file");
+    print(path);
+    File audioFile = new File(path);
+    print(audioFile);
+    List<int> audioBytes = audioFile.readAsBytesSync();
+    print(audioBytes);
+    String audioBase64 = base64Encode(audioBytes);
+    print(audioBase64);
+    print("Audio file encoded");
+    transcript = await stt.recognizeText(audioBase64);
+    if (transcript == null) transcript = 'Nothing Recognized';
+    print(transcript);
+  }
 
-  @override
-  _MyHomePageState createState() => _MyHomePageState();
-}
+  void play() async {
+    if (flutterSound.isRecording) {
+      iconRecording = false;
+      stopRecording();
+    }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+    path = await flutterSound.startPlayer(null);
+    print('startPlayer: $path');
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+    _playerSubscription = flutterSound.onPlayerStateChanged.listen((e) {
+      if (e != null) {
+        DateTime date =
+            new DateTime.fromMillisecondsSinceEpoch(e.currentPosition.toInt());
+        String txt = 'mm:ss:SS';
+      }
     });
   }
 
+  void record() async {
+    path = await flutterSound.startRecorder(path,
+        sampleRate: 8000,
+        numChannels: 1,
+        androidEncoder: AndroidEncoder.AMR_WB);
+    print('startRecorder: $path');
+
+    _recorderSubscription = flutterSound.onRecorderStateChanged.listen((e) {
+      DateTime date =
+          new DateTime.fromMillisecondsSinceEpoch(e.currentPosition.toInt());
+    });
+  }
+
+  void stopRecording() async {
+    String result = await flutterSound.stopRecorder();
+    print('stopRecorder: $result');
+
+    if (_recorderSubscription != null) {
+      _recorderSubscription.cancel();
+      _recorderSubscription = null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
+    // TODO: implement build
+    return MaterialApp(
+        home: Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: Text('Speech to Text'),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
+      body: Column(children: <Widget>[
+        Row(
           children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
+            RaisedButton(
+              child: iconRecording
+                  ? Icon(
+                      Icons.mic,
+                      color: Colors.red,
+                    )
+                  : Icon(
+                      Icons.mic,
+                      color: Colors.black,
+                    ),
+              onPressed: () {
+                setState(() {
+                  if (flutterSound.isRecording) {
+                    stopRecording();
+                    iconRecording = false;
+                  } else
+                    record();
+                  iconRecording = true;
+                });
+              },
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.display1,
+            RaisedButton(
+              child: Icon(Icons.play_circle_outline),
+              onPressed: () {
+                play();
+              },
+            ),
+            RaisedButton(
+              child: Icon(Icons.cloud_upload),
+              onPressed: () async {
+                await speechToText(path);
+                setState(() {});
+              },
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
+        Center(
+          child: Text('Recognized text: ' + transcript),
+        ),
+      ]),
+    ));
   }
 }
