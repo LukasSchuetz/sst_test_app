@@ -18,13 +18,13 @@ class SpeechToText {
   Future<String> recognizeText(String audioContent) async {
 
     try {
-      final uri = Uri.https(_apiURL, '/v1p1beta1/speech:longrunningrecognize');
-      //final uri = Uri.https(_apiURL, '/v1/speech:recognize');
+      //final uri = Uri.https(_apiURL, '/v1p1beta1/speech:longrunningrecognize');
+      final uri = Uri.https(_apiURL, '/v1/speech:recognize');
       final Map json = {
         "config": {
-          "encoding": "AMR",
-          //"encoding": "FLAC",
-          "sampleRateHertz": 8000,
+          //"encoding": "AMR",
+          "encoding": "ENCODING_UNSPECIFIED",
+          "sampleRateHertz": 16000,
           "enableSeparateRecognitionPerChannel": false,
           "languageCode": "de-DE",
         },
@@ -36,8 +36,13 @@ class SpeechToText {
       final jsonResponse = await _postJson(uri, json);
       if (jsonResponse == null) return null;
       print(jsonResponse);
-      //return jsonResponse['results'][0]['alternatives'][0]['transcript'];
-      return 'STT finished';
+      String transcript = '';
+      try {
+        transcript = jsonResponse['results'][0]['alternatives'][0]['transcript'];
+      } on Error {
+        transcript = 'Nothing recognized';
+      }
+      return transcript;
 
       //return audioContent;
     } on Exception catch(e) {

@@ -4,6 +4,9 @@ import './SpeechToText.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter_sound/android_encoder.dart';
+import 'package:recorder_wav/recorder_wav.dart';
+import './blinkingButton.dart';
+
 void main() => runApp(MyApp());
 
 class MyApp extends StatefulWidget {
@@ -18,16 +21,17 @@ class MyAppState extends State<MyApp> {
   FlutterSound flutterSound = new FlutterSound();
   var _recorderSubscription;
   var _playerSubscription;
-  bool iconRecording = false;
-  String path;
+  bool isRecording = false;
+  String path = '';
   SpeechToText stt = SpeechToText();
-  String transcript = 'Please upload a audio file to STT service';
+  String transcript = 'Please record audio';
 
-  void speechToText(String path) async {
+  Future<String> speechToText(String path) async {
     String encodedAudio = encodeAudioFile(path);
-    transcript = await stt.recognizeText(encodedAudio);
+    String transcript = await stt.recognizeText(encodedAudio);
     if (transcript == null) transcript = 'Nothing Recognized';
-    print(transcript);
+    print('transcript: ${transcript}');
+    return transcript;
   }
 
   String encodeAudioFile(String filePath) {
@@ -56,7 +60,7 @@ class MyAppState extends State<MyApp> {
 
   void play() async {
     if (flutterSound.isRecording) {
-      iconRecording = false;
+      isRecording = false;
       stopRecording();
     }
 
@@ -76,13 +80,23 @@ class MyAppState extends State<MyApp> {
     path = await flutterSound.startRecorder(path,
         sampleRate: 8000,
         numChannels: 1,
-        androidEncoder: AndroidEncoder.AMR_WB);
+        androidEncoder: AndroidEncoder.DEFAULT);
     print('startRecorder: $path');
 
     _recorderSubscription = flutterSound.onRecorderStateChanged.listen((e) {
       DateTime date =
           new DateTime.fromMillisecondsSinceEpoch(e.currentPosition.toInt());
     });
+  }
+
+  void recordWav() {
+    RecorderWav.startRecorder();
+  }
+
+  String audioFilePath = '';
+
+  void stopRecorderWav() async {
+    audioFilePath = await RecorderWav.StopRecorder();
   }
 
   void stopRecording() async {
@@ -95,57 +109,51 @@ class MyAppState extends State<MyApp> {
     }
   }
 
+  void recordButtonToggled() async {
+    if (isRecording) {
+      print("Stop recording");
+      isRecording = false;
+      await stopRecorderWav();
+      print('Path: ${audioFilePath}');
+      String result = await speechToText(audioFilePath);
+      setState(() {
+        transcript = result;
+      });
+    } else {
+      print("Start recording");
+      isRecording = true;
+      recordWav();
+    }
+
+  }
+
   @override
   Widget build(BuildContext context) {
     // TODO: implement build
     return MaterialApp(
-        home: Scaffold(
-      appBar: AppBar(
-        title: Text('Speech to Text'),
-      ),
-      body: Column(children: <Widget>[
-        Row(
-          children: <Widget>[
-            RaisedButton(
-              child: iconRecording
-                  ? Icon(
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text('Speech to Text'),
+        ),
+        body: Center(
+            child: Column(
+          children: [
+            isRecording
+                ? BlinkingButton(recordButtonToggled)
+                : RaisedButton(
+                    child: Icon(
                       Icons.mic,
-                      color: Colors.red,
-                    )
-                  : Icon(
-                      Icons.mic,
-                      color: Colors.black,
                     ),
-              onPressed: () {
-                setState(() {
-                  if (flutterSound.isRecording) {
-                    stopRecording();
-                    iconRecording = false;
-                  } else
-                    record();
-                  iconRecording = true;
-                });
-              },
-            ),
-            RaisedButton(
-              child: Icon(Icons.play_circle_outline),
-              onPressed: () {
-                play();
-              },
-            ),
-            RaisedButton(
-              child: Icon(Icons.cloud_upload),
-              onPressed: () async {
-                await speechToText(path);
-                setState(() {});
-              },
-            ),
+                    onPressed: () {
+                      setState(() {
+                        recordButtonToggled();
+                      });
+                    },
+                  ),
+            Text(transcript),
           ],
-        ),
-        Center(
-          child: Text('Recognized text: ' + transcript),
-        ),
-      ]),
-    ));
+        )),
+      ),
+    );
   }
 }
