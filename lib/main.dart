@@ -39,6 +39,7 @@ class MyAppState extends State<MyApp> {
     File audioFile = new File(filePath);
     List<int> audioBytes = audioFile.readAsBytesSync();
     String audioBase64 = base64Encode(audioBytes);
+    print("Base64: " + audioBase64);
     print("Audio file encoded");
     return audioBase64;
   }
@@ -58,55 +59,14 @@ class MyAppState extends State<MyApp> {
     print(transcript);
   }
 
-  void play() async {
-    if (flutterSound.isRecording) {
-      isRecording = false;
-      stopRecording();
-    }
-
-    path = await flutterSound.startPlayer(null);
-    print('startPlayer: $path');
-
-    _playerSubscription = flutterSound.onPlayerStateChanged.listen((e) {
-      if (e != null) {
-        DateTime date =
-            new DateTime.fromMillisecondsSinceEpoch(e.currentPosition.toInt());
-        String txt = 'mm:ss:SS';
-      }
-    });
-  }
-
-  void record() async {
-    path = await flutterSound.startRecorder(path,
-        sampleRate: 8000,
-        numChannels: 1,
-        androidEncoder: AndroidEncoder.DEFAULT);
-    print('startRecorder: $path');
-
-    _recorderSubscription = flutterSound.onRecorderStateChanged.listen((e) {
-      DateTime date =
-          new DateTime.fromMillisecondsSinceEpoch(e.currentPosition.toInt());
-    });
-  }
-
   void recordWav() {
     RecorderWav.startRecorder();
   }
 
-  String audioFilePath = '';
+
 
   void stopRecorderWav() async {
-    audioFilePath = await RecorderWav.StopRecorder();
-  }
-
-  void stopRecording() async {
-    String result = await flutterSound.stopRecorder();
-    print('stopRecorder: $result');
-
-    if (_recorderSubscription != null) {
-      _recorderSubscription.cancel();
-      _recorderSubscription = null;
-    }
+    path = await RecorderWav.StopRecorder();
   }
 
   void recordButtonToggled() async {
@@ -114,8 +74,8 @@ class MyAppState extends State<MyApp> {
       print("Stop recording");
       isRecording = false;
       await stopRecorderWav();
-      print('Path: ${audioFilePath}');
-      String result = await speechToText(audioFilePath);
+      print('Path: ${path}');
+      String result = await speechToText(path);
       setState(() {
         transcript = result;
       });
@@ -124,7 +84,13 @@ class MyAppState extends State<MyApp> {
       isRecording = true;
       recordWav();
     }
+  }
 
+  void playAudioFile() async {
+    await flutterSound.startPlayer(path);
+    print('startPlayer: $path');
+
+    _playerSubscription = flutterSound.onPlayerStateChanged.listen((e) {});
   }
 
   @override
@@ -151,6 +117,12 @@ class MyAppState extends State<MyApp> {
                     },
                   ),
             Text(transcript),
+            RaisedButton(
+              child: Icon(Icons.play_circle_outline),
+              onPressed: () {
+                playAudioFile();
+              },
+            )
           ],
         )),
       ),

@@ -18,7 +18,6 @@ class SpeechToText {
   Future<String> recognizeText(String audioContent) async {
 
     try {
-      //final uri = Uri.https(_apiURL, '/v1p1beta1/speech:longrunningrecognize');
       final uri = Uri.https(_apiURL, '/v1/speech:recognize');
       final Map json = {
         "config": {
