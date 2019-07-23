@@ -22,15 +22,13 @@ class SpeechToText {
       final uri = Uri.https(_apiURL, '/v1/speech:recognize');
       final Map json = {
         "config": {
-          //"encoding": "AMR",
-          "encoding": "ENCODING_UNSPECIFIED",
-          "sampleRateHertz": 16000,
+          //"encoding": "ENCODING_UNSPECIFIED",
+          //"sampleRateHertz": 16000,
           "enableSeparateRecognitionPerChannel": false,
           "languageCode": "de-DE",
         },
         "audio": {
           "content": audioContent.toString(),
-          //"uri":"gs://cloud-samples-tests/speech/brooklyn.flac"
         }
       };
       final jsonResponse = await _postJson(uri, json);
