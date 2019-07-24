@@ -39,15 +39,32 @@ class MyAppState extends State<MyApp> {
     transcript = await stt.recognizeText(audioBase64);
     if (transcript == null) transcript = 'Nothing Recognized';
     print(transcript);
-    final dir = Directory(path);
-    dir.deleteSync(recursive: true);
-
     return transcript;
   }
 
   // Alternative with record_wav package. Works only with Android
   void recordWav() {
     RecorderWav.startRecorder();
+  }
+
+
+  // Record with flutter_sound package
+  void recordFlutterSound() async {
+    Directory tempDir = await getTemporaryDirectory();
+    String tempPath = tempDir.path;
+    path = tempPath;
+    path = await flutterSound.startRecorder(null);
+    print('startRecorder: $path');
+  }
+
+  Future<void> stopFlutterSoundRecording() async {
+    String result = await flutterSound.stopRecorder();
+    print('stopRecorder: $result');
+  }
+
+  void playRecord() async {
+    path = await flutterSound.startPlayer(null);
+    print('startPlayer: $path');
   }
 
 
@@ -82,7 +99,7 @@ class MyAppState extends State<MyApp> {
       print("Stop recording");
       isRecording = false;
       //await stopRecorderWav();
-      await stopAudioRecorder();
+      await stopFlutterSoundRecording();
       //print('Path: ${path}');
       String result = await speechToText(path);
       setState(() {
@@ -92,7 +109,7 @@ class MyAppState extends State<MyApp> {
       print("Start recording");
       isRecording = true;
       //recordWav();
-      recordAudioRecorder();
+      recordFlutterSound();
     }
   }
 
@@ -123,6 +140,7 @@ class MyAppState extends State<MyApp> {
             RaisedButton(
               child: Icon(Icons.play_circle_outline),
               onPressed: () {
+                playRecord();
               },
             )
           ],

@@ -25,8 +25,8 @@ dependencies:
   cupertino_icons: ^0.1.2
   flutter_sound: ^1.4.2
   recorder_wav: ^0.1.0
-  audio_recorder:
-  path_provider:
+  audio_recorder: ^1.0.1
+  path_provider: ^1.1.2
 
 
 dev_dependencies:
