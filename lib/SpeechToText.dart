@@ -21,7 +21,7 @@ class SpeechToText {
       final uri = Uri.https(_apiURL, '/v1/speech:recognize');
       final Map json = {
         "config": {
-          //"encoding": "ENCODING_UNSPECIFIED",
+          "encoding": "ENCODING_UNSPECIFIED",
           //"sampleRateHertz": 16000,
           "enableSeparateRecognitionPerChannel": false,
           "languageCode": "de-DE",
