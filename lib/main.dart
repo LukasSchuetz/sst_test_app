@@ -3,9 +3,7 @@ import 'package:flutter_sound/flutter_sound.dart';
 import './SpeechToText.dart';
 import 'dart:io';
 import 'dart:convert';
-import 'package:recorder_wav/recorder_wav.dart';
 import './blinkingButton.dart';
-import 'package:audio_recorder/audio_recorder.dart';
 import 'package:path_provider/path_provider.dart';
 
 void main() => runApp(MyApp());
@@ -24,7 +22,6 @@ class MyAppState extends State<MyApp> {
   String path = '';
   SpeechToText stt = SpeechToText();
   String transcript = 'Please record audio';
-  Recording recording;
 
   Future<String> speechToText(String path) async {
     print("Read file");
@@ -40,11 +37,6 @@ class MyAppState extends State<MyApp> {
     if (transcript == null) transcript = 'Nothing Recognized';
     print(transcript);
     return transcript;
-  }
-
-  // Alternative with record_wav package. Works only with Android
-  void recordWav() {
-    RecorderWav.startRecorder();
   }
 
 
@@ -65,33 +57,6 @@ class MyAppState extends State<MyApp> {
   void playRecord() async {
     path = await flutterSound.startPlayer(null);
     print('startPlayer: $path');
-  }
-
-
-  void recordAudioRecorder() async {
-    bool hasPermissions = await AudioRecorder.hasPermissions;
-    if(hasPermissions) {
-      print ("Has permissions to record");
-    } else {
-      print ("Error: Does not have permission to record");
-    }
-    Directory tempDir = await getTemporaryDirectory();
-    String tempPath = tempDir.path;
-    path = tempPath + "/audio5.wav";
-    print(path);
-    await AudioRecorder.start(path: path,audioOutputFormat: AudioOutputFormat.WAV);
-  }
-
-  /*
-  void stopRecorderWav() async {
-    path = await RecorderWav.StopRecorder();
-  }
-  */
-
-  Future<void> stopAudioRecorder() async {
-    recording = await AudioRecorder.stop();
-    print("Path : ${recording.path},  Format : ${recording.audioOutputFormat},  Duration : ${recording.duration},  Extension : ${recording.extension},");
-    path = recording.path;
   }
 
   void recordButtonToggled() async {
